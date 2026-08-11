@@ -350,5 +350,25 @@
     "summary": "Examines the regulatory, institutional, and market pathways needed to support India's ambition of 100 GW nuclear capacity by 2047 (Viksit Bharat), with a particular focus on enabling deployment of Small Modular Reactors (SMRs) alongside large conventional reactors, following the 2025 SHANTI Act opening the sector to private participation.",
     "recommendations": "Evolve nuclear regulation — currently designed around large reactors — to accommodate SMRs and private-sector participation; build a skilled nuclear workforce and public awareness/confidence programs; mobilize the estimated ₹23–25 lakh crore investment needed (~₹1.0–1.2 lakh crore/year) through phased combination of large reactors and SMRs to deliver firm, round-the-clock low-carbon power that complements variable renewables.",
     "conclusion": "Reaching India's 100 GW nuclear target by 2047 is achievable but requires urgent, parallel action on regulation, financing, workforce, and public acceptance — with SMRs positioned as a necessary complement to large reactors, not a replacement, particularly to provide firm baseload during non-solar hours as renewable penetration rises."
+  },
+  {
+    "id": "r_msoarsc2",
+    "title": "India's PV Manufacturing and Its Strategic Inflection Points",
+    "org": "The Energy and Resources Institute (TERI)",
+    "date": "2026",
+    "year": 2026,
+    "topics": [
+      "Solar PV Manufacturing",
+      "Renewable Energy Policy",
+      "Supply Chain Resilience",
+      "Clean Technology"
+    ],
+    "url": "",
+    "summary": "This report evaluates India's solar photovoltaic (PV) manufacturing landscape, identifying strong downstream capacity in module assembly alongside critical vulnerabilities in upstream components such as cells, wafers, and polysilicon. It demonstrates that India relies heavily on foreign imports for raw silicon inputs and specialized manufacturing equipment, posing risks to national energy security and climate goals. The analysis argues that strategic alignment across technology investment, domestic toolmaking, financing, and ESG standards is essential to transform India into a self-reliant global solar hub by 2030.",
+    "recommendations": "Policymakers should progressively extend domestic procurement mandates like ALMM to cells, wafers, and polysilicon, while establishing dedicated PLI incentives for domestic equipment manufacturers. Capital costs for upstream processing plants should be lowered using blended finance instruments, sovereign green bonds, and viability-gap funding. Additionally, India should set up specialized solar technology parks featuring open-access pilot lines and form a PV-Semiconductor Skill Council to train a diverse, qualified workforce.",
+    "conclusion": "India stands at a pivotal junction where it can transition from a major solar deployer into an end-to-end global PV manufacturing power. By aggressively resolving upstream supply bottlenecks, supporting local equipment toolmakers, and maintaining stable policy incentives, the nation can secure energy autonomy and export competitiveness.",
+    "summaryAI": true,
+    "recAI": true,
+    "conclAI": true
   }
 ]
