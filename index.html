@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Publications Archive</title>
+<style>
+  :root{
+    --bg: #f7f3ec; --panel: #ffffff; --panel-2: #faf8f4; --line: #e4ddd0; --line-soft: #ece5d8;
+    --text: #3a352c; --text-dim: #6b6355; --text-faint: #9a927f;
+    --accent: #c98a4b; --accent-dim: #e0c9a8; --accent-glow: rgba(201,138,75,0.10);
+    --green: #7a9b76; --amber: #c98a4b; --tag-bg: #f1ece1; --tag-line: #e4ddd0;
+    --mono: 'JetBrains Mono','SF Mono',Consolas,monospace; --sans: 'IBM Plex Sans','Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--bg);
+    color:var(--text); font-family:var(--sans); min-height:100vh;
+  }
+  ::selection{background:var(--accent-glow);color:var(--accent);}
+  a{color:var(--accent);}
+
+  header{position:sticky; top:0; z-index:20; background:rgba(247,243,236,0.94); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line); padding:16px 28px 14px;}
+  .top-row{display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;}
+  .brand{display:flex; align-items:center; gap:10px; cursor:pointer; background:none; border:none; padding:0;}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--green); display:inline-block;}
+  .brand h1{font-family:var(--sans); font-size:16px; letter-spacing:0.01em; margin:0; font-weight:650; color:var(--text);}
+  .brand:hover h1{color:var(--accent);}
+  .sync-state{font-family:var(--mono); font-size:10.5px; color:var(--text-faint); display:flex; align-items:center; gap:6px;}
+  .sync-state .pulse{width:6px;height:6px;border-radius:50%;background:var(--green);}
+  .sync-state.stale .pulse{background:#d9a15c;}
+  .sync-state.err .pulse{background:#c9705c;}
+
+  .stat-strip{display:flex; gap:18px; font-family:var(--mono); font-size:10.5px; color:var(--text-dim);}
+  .stat-strip b{color:var(--accent); font-weight:600;}
+
+  .controls{display:flex; gap:9px; margin-top:14px; flex-wrap:wrap; align-items:center;}
+  input[type=text], input[type=password], select{
+    background:var(--panel); border:1px solid var(--line); color:var(--text);
+    font-family:var(--sans); font-size:13px; padding:9px 12px; border-radius:6px; outline:none;
+  }
+  input[type=text]{flex:1; min-width:220px;}
+  input:focus, select:focus{border-color:var(--accent-dim); box-shadow:0 0 0 3px var(--accent-glow);}
+  select{cursor:pointer; font-family:var(--sans); font-size:12.5px;}
+  .btn{font-family:var(--sans); font-size:12.5px; font-weight:600;
+    background:var(--panel); border:1px solid var(--line); color:var(--text-dim);
+    padding:9px 15px; border-radius:6px; cursor:pointer; transition:all .15s; white-space:nowrap;}
+  .btn:hover{border-color:var(--accent-dim); color:var(--text); background:var(--panel-2);}
+  .btn:disabled{opacity:0.4; cursor:not-allowed;}
+  .btn.primary{background:var(--accent); color:#fff; border-color:var(--accent); font-weight:650;}
+  .btn.primary:hover{background:#b87a3d;}
+  .btn.ghost{border-color:var(--line);color:var(--text-dim); background:transparent;}
+  .btn.ghost:hover{border-color:var(--text-dim); color:var(--text); background:var(--panel-2);}
+  .btn.home{padding:9px 12px;}
+
+  main{padding:20px 28px 60px; max-width:1400px; margin:0 auto;}
+  .section-label{font-family:var(--sans); font-size:12px; color:var(--text-faint); font-weight:600;
+    letter-spacing:0.02em; margin:0 0 12px; display:flex; align-items:center; gap:10px;}
+  .section-label::after{content:''; flex:1; height:1px; background:var(--line-soft);}
+  .clear-filters{font-family:var(--sans); font-size:11.5px; color:var(--accent); background:none; border:none;
+    cursor:pointer; text-decoration:underline; padding:0;}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:14px;}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px 16px 14px;
+    cursor:pointer; position:relative; transition:border-color .15s, transform .1s, box-shadow .15s; display:flex; flex-direction:column; gap:9px;
+    box-shadow:0 1px 2px rgba(58,53,44,0.04);}
+  .card:hover{border-color:var(--accent-dim); transform:translateY(-2px); box-shadow:0 8px 20px rgba(58,53,44,0.08);}
+  .card .meta-row{display:flex; justify-content:space-between; align-items:center; font-family:var(--mono); font-size:10.5px; color:var(--text-faint);}
+  .card .meta-row .date{color:var(--green); font-weight:600;}
+  .card h3{margin:0; font-size:14.5px; line-height:1.4; font-weight:650; color:var(--text);}
+  .card .org{font-size:11.5px; color:var(--text-dim); font-family:var(--mono);}
+  .card .excerpt{font-size:12.5px; color:var(--text-dim); line-height:1.55; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+  .card .tags{display:flex; flex-wrap:wrap; gap:5px; margin-top:2px;}
+  .tag{font-family:var(--sans); font-size:10px; font-weight:600;
+    background:var(--tag-bg); border:1px solid var(--tag-line); color:var(--text-dim); padding:3px 8px; border-radius:20px;}
+  .card .unreach-flag{font-family:var(--sans); font-size:10px; font-weight:600; color:#a85f3f; border:1px solid #e8c9b5;
+    background:#fbf0e6; padding:2px 8px; border-radius:20px; align-self:flex-start;}
+  .card .added-flag{font-family:var(--sans); font-size:10px; font-weight:600; color:var(--green); border:1px solid #d3e0d1;
+    background:#eef4ed; padding:2px 8px; border-radius:20px; align-self:flex-start;}
+
+  .empty{font-family:var(--sans); color:var(--text-faint); font-size:13px; padding:40px 0; text-align:center;
+    border:1px dashed var(--line); border-radius:10px;}
+
+  .overlay{position:fixed; inset:0; background:rgba(58,53,44,0.35); backdrop-filter:blur(2px);
+    display:none; align-items:flex-start; justify-content:center; z-index:100; padding:40px 20px; overflow-y:auto;}
+  .overlay.open{display:flex;}
+  .modal{background:var(--panel); border:1px solid var(--line); border-radius:14px; max-width:760px; width:100%;
+    padding:0; box-shadow:0 30px 70px rgba(58,53,44,0.18);}
+  .modal-head{padding:22px 26px 16px; border-bottom:1px solid var(--line-soft);
+    display:flex; justify-content:space-between; align-items:flex-start; gap:16px;}
+  .modal-head .meta-row{font-family:var(--mono); font-size:11px; color:var(--text-faint); margin-bottom:8px; display:flex; gap:14px;}
+  .modal-head .meta-row .date{color:var(--green); font-weight:600;}
+  .modal-head h2{margin:0 0 4px; font-size:19px; line-height:1.4; font-weight:650; color:var(--text);}
+  .modal-head .org{font-family:var(--mono); font-size:12px; color:var(--text-dim);}
+  .close-x{background:var(--panel-2); border:1px solid var(--line); color:var(--text-dim); width:30px; height:30px;
+    border-radius:8px; cursor:pointer; font-size:16px; line-height:1; flex-shrink:0;}
+  .close-x:hover{border-color:var(--text-dim); color:var(--text);}
+  .modal-body{padding:20px 26px 26px;}
+  .modal-tags{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:18px;}
+  .block{margin-bottom:18px;}
+  .block .lbl{font-family:var(--sans); font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
+    color:var(--accent); margin-bottom:7px; display:flex; align-items:center; gap:8px;}
+  .block .lbl .ai-flag{font-size:9.5px; font-weight:600; color:var(--text-faint); border:1px solid var(--line); padding:1px 7px; border-radius:9px;
+    text-transform:none; letter-spacing:0;}
+  .block p{margin:0; font-size:13.5px; line-height:1.65; color:var(--text);}
+  .modal-footer{display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding-top:16px;
+    border-top:1px solid var(--line-soft); gap:10px; flex-wrap:wrap;}
+  .src-link{font-family:var(--sans); font-size:12.5px; font-weight:600; color:var(--accent); text-decoration:none;
+    display:inline-flex; align-items:center; gap:5px; border-bottom:1px solid var(--accent-dim);}
+  .src-link:hover{color:#b87a3d; border-color:#b87a3d;}
+  .unreach-note{background:#fbf0e6; border:1px solid #e8c9b5; color:#a85f3f; padding:10px 12px;
+    font-size:12.5px; border-radius:8px; margin-bottom:16px; font-family:var(--sans); line-height:1.5;}
+  .locked-note{background:var(--accent-glow); border:1px solid var(--accent-dim); color:#a5702f; padding:10px 12px;
+    font-size:12.5px; border-radius:8px; margin-bottom:16px; font-family:var(--sans); line-height:1.6;}
+
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .form-grid .full{grid-column:1/-1;}
+  label{display:block; font-family:var(--sans); font-size:11px; font-weight:650; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-faint); margin-bottom:5px;}
+  input, textarea{width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    font-family:var(--sans); font-size:13px; padding:9px 11px; border-radius:6px; outline:none; resize:vertical;}
+  input:focus, textarea:focus{border-color:var(--accent-dim); box-shadow:0 0 0 3px var(--accent-glow);}
+  textarea{min-height:64px; line-height:1.5;}
+  .hint{font-family:var(--sans); font-size:11.5px; color:var(--text-faint); line-height:1.6; margin-top:4px;}
+
+  footer{text-align:center; padding:28px 20px 50px; font-family:var(--sans); font-size:11.5px; color:var(--text-faint);}
+  .status-msg{font-family:var(--sans); font-size:12px; font-weight:600; padding:9px 12px; border-radius:8px; margin-top:12px; display:none;}
+  .status-msg.show{display:block;}
+  .status-msg.ok{background:#eef4ed; border:1px solid #d3e0d1; color:#5f7d5c;}
+  .status-msg.err{background:#fbeceb; border:1px solid #e8c1bd; color:#a54c3f;}
+
+  @media (max-width:640px){
+    header{padding:14px 16px;} main{padding:16px 16px 50px;}
+    .form-grid{grid-template-columns:1fr;} .modal-head{flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top-row">
+    <button class="brand" id="homeBtn" title="Back to all reports"><span class="dot"></span><h1>Publications Archive</h1></button>
+    <div style="display:flex; align-items:center; gap:18px;">
+      <span class="sync-state" id="syncState"><span class="pulse"></span><span id="syncText">loading…</span></span>
+      <div class="stat-strip">
+        <span><b id="statTotal">0</b> reports</span>
+        <span><b id="statTopics">0</b> topics</span>
+        <span><b id="statRange">—</b> span</span>
+      </div>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="btn home" id="homeBtn2" title="Back to all reports">🏠 Home</button>
+    <input type="text" id="searchBox" placeholder="Search title, org, or content…">
+    <select id="topicFilter"><option value="">All topics</option></select>
+    <select id="sortSelect">
+      <option value="date_desc">Newest first</option>
+      <option value="date_asc">Oldest first</option>
+      <option value="title_asc">Title A–Z</option>
+    </select>
+    <button class="btn primary" id="openAddBtn">+ Add report</button>
+    <button class="btn ghost" id="settingsBtn">⚙ Access</button>
+  </div>
+</header>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<main>
+  <p class="section-label" id="listLabel">All reports</p>
+  <div class="grid" id="grid"></div>
+</main>
+
+<footer>Data lives in <code>data.json</code> in this repo · reads are public · adding requires a GitHub token with write access</footer>
+
+<div class="overlay" id="detailOverlay"><div class="modal" id="detailModal"></div></div>
+
+<!-- Add report modal -->
+<div class="overlay" id="addOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h2>Add a new report</h2><div class="org">This commits directly to data.json — everyone sees it after the page refreshes.</div></div>
+      <button class="close-x" id="closeAdd">✕</button>
+    </div>
+    <div class="modal-body" id="addModalBody">
+      <!-- filled by JS depending on whether a token is set -->
+    </div>
+  </div>
+</div>
+
+<!-- Settings / token modal -->
+<div class="overlay" id="settingsOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h2>Editor access</h2><div class="org">Only needed if you're adding or removing reports.</div></div>
+      <button class="close-x" id="closeSettings">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="hint" style="margin-bottom:14px;">
+        1. On GitHub: Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new.<br>
+        2. Scope it to <b>only this repository</b>, with <b>Contents: Read and write</b> permission.<br>
+        3. Paste the token below. It's saved only in this browser (localStorage) — never committed, never sent anywhere but api.github.com.
+      </div>
+      <div class="form-grid">
+        <div class="full">
+          <label>Repo owner</label>
+          <input type="text" id="cfg_owner" placeholder="e.g. asif-teri">
+        </div>
+        <div class="full">
+          <label>Repo name</label>
+          <input type="text" id="cfg_repo" placeholder="e.g. publications-archive">
+        </div>
+        <div class="full">
+          <label>Branch</label>
+          <input type="text" id="cfg_branch" placeholder="main" value="main">
+        </div>
+        <div class="full">
+          <label>Personal access token</label>
+          <input type="password" id="cfg_token" placeholder="github_pat_…">
+        </div>
+      </div>
+      <div class="hint" style="margin:16px 0 10px;border-top:1px solid var(--line-soft);padding-top:14px;">
+        <b style="color:var(--amber);">Optional — AI extraction.</b> Have the app read a PDF and draft the
+        Summary / Recommendations / Conclusion for you. Pick a provider and paste its key below —
+        <b>Google Gemini has a genuinely free, ongoing tier</b> (no billing needed, just rate-limited) via
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.
+        Claude requires an Anthropic API key with billing set up
+        (<a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>).
+        Calls go straight from your browser to the provider you pick and are billed (or rate-limited) on your own account.
+        Without any key, you can still add reports — you'll just type those fields in yourself.
+      </div>
+      <div class="form-grid">
+        <div class="full">
+          <label>AI provider to use</label>
+          <select id="cfg_provider" style="width:100%;">
+            <option value="gemini">Google Gemini (free tier)</option>
+            <option value="claude">Anthropic Claude</option>
+          </select>
+        </div>
+        <div class="full">
+          <label>Google Gemini API key</label>
+          <input type="password" id="cfg_geminikey" placeholder="AIza…">
+        </div>
+        <div class="full">
+          <label>Anthropic API key</label>
+          <input type="password" id="cfg_aikey" placeholder="sk-ant-…">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn ghost" id="clearTokenBtn">Sign out / clear all</button>
+        <button class="btn primary" id="saveTokenBtn">Save</button>
+      </div>
+      <div class="status-msg" id="settingsStatus"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CONFIG_KEY = "pub_archive_gh_config_v1";
+let allReports = [];
+let filtered = [];
+
+// ============ CONFIG (repo + token) ============
+function loadConfig(){
+  try{ return JSON.parse(localStorage.getItem(CONFIG_KEY) || "{}"); }catch(e){ return {}; }
+}
+function saveConfig(cfg){ localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)); }
+function hasToken(){ const c = loadConfig(); return !!(c.owner && c.repo && c.token); }
+
+// ============ DATA LOADING (public read, no auth needed) ============
+async function loadData(){
+  setSync('loading', 'loading…');
+  try{
+    const res = await fetch('data.json', {cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    allReports = await res.json();
+    setSync('ok', 'live');
+  }catch(e){
+    setSync('err', 'could not load data.json — open via a local server, not file://');
+    allReports = [];
+  }
+  populateTopics(); updateStats(); applyFilters();
+}
+
+function setSync(state, text){
+  const el = document.getElementById('syncState');
+  el.className = 'sync-state' + (state==='err' ? ' err' : state==='loading' ? ' stale' : '');
+  document.getElementById('syncText').textContent = text;
+}
+
+// ============ UI REFS ============
+const grid = document.getElementById('grid');
+const searchBox = document.getElementById('searchBox');
+const topicFilter = document.getElementById('topicFilter');
+const sortSelect = document.getElementById('sortSelect');
+const listLabel = document.getElementById('listLabel');
+const detailOverlay = document.getElementById('detailOverlay');
+const detailModal = document.getElementById('detailModal');
+const addOverlay = document.getElementById('addOverlay');
+const settingsOverlay = document.getElementById('settingsOverlay');
+
+function monthLabel(dateStr){
+  if(!dateStr) return '—';
+  const parts = dateStr.split('-');
+  if(parts.length === 1) return parts[0];
+  const months = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const m = parseInt(parts[1],10);
+  return (months[m]||'') + ' ' + parts[0];
+}
+
+function populateTopics(){
+  const topics = new Set();
+  allReports.forEach(r => (r.topics||[]).forEach(t => topics.add(t)));
+  const sorted = [...topics].sort();
+  topicFilter.innerHTML = '<option value="">All topics</option>' + sorted.map(t => `<option value="${t}">${t}</option>`).join('');
+  document.getElementById('statTopics').textContent = sorted.length;
+}
+
+function updateStats(){
+  document.getElementById('statTotal').textContent = allReports.length;
+  const years = allReports.map(r => r.year).filter(Boolean);
+  if(years.length){
+    document.getElementById('statRange').textContent = Math.min(...years) + '–' + Math.max(...years);
+  }
+}
+
+function applyFilters(){
+  const q = searchBox.value.trim().toLowerCase();
+  const topic = topicFilter.value;
+  filtered = allReports.filter(r => {
+    const matchesQ = !q || [r.title, r.org, r.summary, r.recommendations, r.conclusion, (r.topics||[]).join(' ')]
+      .join(' ').toLowerCase().includes(q);
+    const matchesTopic = !topic || (r.topics||[]).includes(topic);
+    return matchesQ && matchesTopic;
+  });
+  sortFiltered();
+  render();
+}
+
+function sortFiltered(){
+  const mode = sortSelect.value;
+  filtered.sort((a,b) => {
+    if(mode === 'title_asc') return a.title.localeCompare(b.title);
+    const da = a.date || '0', db = b.date || '0';
+    if(mode === 'date_asc') return da.localeCompare(db);
+    return db.localeCompare(da);
+  });
+}
+
+function render(){
+  const isFiltered = filtered.length !== allReports.length;
+  listLabel.innerHTML = isFiltered
+    ? `${filtered.length} of ${allReports.length} reports <button class="clear-filters" id="clearFiltersBtn">clear filters</button>`
+    : 'All reports';
+  if(isFiltered){
+    document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+      searchBox.value = ''; topicFilter.value = ''; applyFilters();
+    });
+  }
+  if(filtered.length === 0){
+    grid.innerHTML = '<div class="empty">No reports match your filters.</div>';
+    return;
+  }
+  grid.innerHTML = filtered.map(r => `
+    <div class="card" data-id="${r.id}">
+      <div class="meta-row"><span class="date">${monthLabel(r.date)}</span><span>${r.org || ''}</span></div>
+      <h3>${escapeHtml(r.title)}</h3>
+      <div class="excerpt">${escapeHtml(r.summary || '')}</div>
+      <div class="tags">${(r.topics||[]).slice(0,3).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
+      ${r.unreachable ? '<span class="unreach-flag">⚠ needs manual entry</span>' : ''}
+    </div>
+  `).join('');
+  grid.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', () => openDetail(card.dataset.id));
+  });
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
+}
+
+function openDetail(id){
+  const r = allReports.find(x => x.id === id);
+  if(!r) return;
+  detailModal.innerHTML = `
+    <div class="modal-head">
+      <div>
+        <div class="meta-row"><span class="date">${monthLabel(r.date)}</span><span>${escapeHtml(r.org||'')}</span></div>
+        <h2>${escapeHtml(r.title)}</h2>
+      </div>
+      <button class="close-x" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-tags">${(r.topics||[]).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
+      ${r.unreachable ? `<div class="unreach-note">⚠ This source could not be retrieved automatically (private/internal link). Edit this entry once you have access.</div>` : ''}
+      <div class="block"><div class="lbl">Summary ${r.summaryAI ? '<span class="ai-flag">AI-synthesized</span>':''}</div><p>${escapeHtml(r.summary) || '—'}</p></div>
+      <div class="block"><div class="lbl">Recommendations ${r.recAI ? '<span class="ai-flag">AI-synthesized</span>':''}</div><p>${escapeHtml(r.recommendations) || '—'}</p></div>
+      <div class="block"><div class="lbl">Conclusion ${r.conclAI ? '<span class="ai-flag">AI-synthesized</span>':''}</div><p>${escapeHtml(r.conclusion) || '—'}</p></div>
+      <div class="modal-footer">
+        ${r.url ? `<a class="src-link" href="${r.url}" target="_blank" rel="noopener noreferrer">Open original PDF ↗ <span style="font-weight:400;color:var(--text-faint);font-size:11px;">(new tab)</span></a>` : '<span></span>'}
+        ${hasToken() ? `<button class="btn ghost" id="deleteReport">Remove this report</button>` : ''}
+      </div>
+    </div>
+  `;
+  detailOverlay.classList.add('open');
+  document.getElementById('modalClose').addEventListener('click', closeDetail);
+  const delBtn = document.getElementById('deleteReport');
+  if(delBtn){
+    delBtn.addEventListener('click', async () => {
+      if(!confirm('Remove this report for everyone? This commits to the repo.')) return;
+      const next = allReports.filter(x => x.id !== id);
+      await commitData(next, `Remove report: ${r.title}`);
+      closeDetail();
+    });
+  }
+}
+function closeDetail(){ detailOverlay.classList.remove('open'); }
+detailOverlay.addEventListener('click', e => { if(e.target === detailOverlay) closeDetail(); });
+
+// ============ ADD REPORT ============
+document.getElementById('openAddBtn').addEventListener('click', () => {
+  renderAddForm();
+  addOverlay.classList.add('open');
+});
+document.getElementById('closeAdd').addEventListener('click', () => addOverlay.classList.remove('open'));
+addOverlay.addEventListener('click', e => { if(e.target === addOverlay) addOverlay.classList.remove('open'); });
+
+function renderAddForm(){
+  const body = document.getElementById('addModalBody');
+  if(!hasToken()){
+    body.innerHTML = `
+      <div class="locked-note">🔒 Adding a report requires editor access. Click <b>⚙ Access</b> in the header, add your GitHub token for this repo, then come back here.</div>
+      <button class="btn primary" id="goToSettings">Set up access</button>
+    `;
+    document.getElementById('goToSettings').addEventListener('click', () => {
+      addOverlay.classList.remove('open');
+      settingsOverlay.classList.add('open');
+    });
+    return;
+  }
+  body.innerHTML = `
+    <div class="hint" style="margin-bottom:14px;">
+      Give it a PDF — upload a file, or paste a link — then click <b>Extract with AI</b> to draft the
+      Summary, Recommendations, and Conclusion. Everything stays editable before you save.
+    </div>
+    <div class="form-grid">
+      <div class="full">
+        <label>PDF source</label>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <button type="button" class="btn ghost" id="srcModeLink" style="flex:1;">Link to PDF</button>
+          <button type="button" class="btn ghost" id="srcModeUpload" style="flex:1;">Upload PDF file</button>
+        </div>
+        <div id="srcLinkRow">
+          <input type="text" id="f_url" placeholder="https://…/report.pdf">
+          <div class="hint">Only works if the source server allows cross-origin fetch — many gov/org sites block this. If it fails, download the file and use "Upload PDF file" instead.</div>
+        </div>
+        <div id="srcUploadRow" style="display:none;">
+          <input type="file" id="f_pdfFile" accept="application/pdf">
+          <div class="hint">Files over ~5 MB may fail to commit via GitHub's simple file API — link to it externally instead if so.</div>
+        </div>
+      </div>
+      <div class="full" style="display:flex; gap:10px; align-items:center;">
+        <button class="btn" id="readPdfBtn" type="button">Read PDF text</button>
+        <button class="btn primary" id="aiExtractBtn" type="button" disabled>✨ Extract with AI</button>
+        <span id="pdfReadStatus" style="font-family:var(--mono); font-size:11px; color:var(--text-faint);"></span>
+      </div>
+      <div class="full"><label>Title *</label><input type="text" id="f_title" placeholder="Report title"></div>
+      <div><label>Organization</label><input type="text" id="f_org" placeholder="e.g. TERI"></div>
+      <div><label>Publication date</label><input type="text" id="f_date" placeholder="YYYY-MM or YYYY"></div>
+      <div class="full"><label>Topics (comma-separated)</label><input type="text" id="f_topics" placeholder="e.g. Battery Storage, Grid Stability"></div>
+      <div class="full"><label>Summary</label><textarea id="f_summary" placeholder="What the report covers and finds"></textarea></div>
+      <div class="full"><label>Recommendations</label><textarea id="f_recs" placeholder="Key recommendations"></textarea></div>
+      <div class="full"><label>Conclusion</label><textarea id="f_conclusion" placeholder="Bottom-line conclusion"></textarea></div>
+      <div class="full" id="storePdfRow" style="display:none;">
+        <label style="display:flex; align-items:center; gap:8px; text-transform:none; font-family:var(--sans); font-size:12.5px; color:var(--text-dim);">
+          <input type="checkbox" id="f_storePdf" style="width:auto;" checked> Store a copy of this PDF in the repo (under /pdfs)
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <span style="font-family:var(--mono);font-size:11px;color:var(--text-faint);">* required · commits directly to data.json</span>
+      <button class="btn primary" id="saveAddBtn">Save report</button>
+    </div>
+    <div class="status-msg" id="addStatus"></div>
+  `;
+
+  let extractedText = '';
+  let extractedFromAI = false;
+  let pendingPdfFile = null;
+  let sourceMode = 'link';
+
+  function setSourceMode(mode){
+    sourceMode = mode;
+    document.getElementById('srcLinkRow').style.display = mode==='link' ? '' : 'none';
+    document.getElementById('srcUploadRow').style.display = mode==='upload' ? '' : 'none';
+    document.getElementById('storePdfRow').style.display = mode==='upload' ? '' : 'none';
+    document.getElementById('srcModeLink').className = 'btn' + (mode==='link' ? ' primary' : ' ghost');
+    document.getElementById('srcModeUpload').className = 'btn' + (mode==='upload' ? ' primary' : ' ghost');
+  }
+  setSourceMode('link');
+  document.getElementById('srcModeLink').addEventListener('click', () => setSourceMode('link'));
+  document.getElementById('srcModeUpload').addEventListener('click', () => setSourceMode('upload'));
+
+  const pdfStatus = document.getElementById('pdfReadStatus');
+  const aiBtn = document.getElementById('aiExtractBtn');
+
+  document.getElementById('readPdfBtn').addEventListener('click', async () => {
+    pdfStatus.textContent = 'Reading…';
+    aiBtn.disabled = true;
+    try{
+      let arrayBuffer;
+      if(sourceMode === 'upload'){
+        const fileInput = document.getElementById('f_pdfFile');
+        const file = fileInput.files[0];
+        if(!file){ pdfStatus.textContent = 'Choose a PDF file first.'; return; }
+        pendingPdfFile = file;
+        arrayBuffer = await file.arrayBuffer();
+      } else {
+        const url = document.getElementById('f_url').value.trim();
+        if(!url){ pdfStatus.textContent = 'Paste a PDF link first.'; return; }
+        try{
+          const res = await fetch(url);
+          if(!res.ok) throw new Error('HTTP ' + res.status);
+          arrayBuffer = await res.arrayBuffer();
+        }catch(e){
+          pdfStatus.textContent = "Couldn't fetch that link directly (likely blocked by the source site). Download the PDF and use 'Upload PDF file' instead.";
+          return;
+        }
+      }
+      extractedText = await extractPdfText(arrayBuffer);
+      pdfStatus.textContent = `Read ~${extractedText.length.toLocaleString()} characters. ` + (hasAiKey() ? 'Ready to extract.' : 'Add an API key in ⚙ Access to auto-extract, or fill fields manually.');
+      aiBtn.disabled = !hasAiKey() || !extractedText;
+    }catch(e){
+      pdfStatus.textContent = 'Error reading PDF: ' + e.message;
+    }
+  });
+
+  aiBtn.addEventListener('click', async () => {
+    if(!extractedText){ pdfStatus.textContent = 'Read the PDF first.'; return; }
+    if(!hasAiKey()){ pdfStatus.textContent = 'Add an API key for your chosen provider in ⚙ Access first.'; return; }
+    pdfStatus.textContent = 'Asking AI to draft the summary…';
+    pdfStatus.style.color = '';
+    aiBtn.disabled = true;
+    try{
+      const draft = await aiExtractFields(extractedText, document.getElementById('f_title').value.trim());
+      if(draft.title && !document.getElementById('f_title').value.trim()) document.getElementById('f_title').value = draft.title;
+      if(draft.org) document.getElementById('f_org').value = draft.org;
+      if(draft.date) document.getElementById('f_date').value = draft.date;
+      if(draft.topics && draft.topics.length) document.getElementById('f_topics').value = draft.topics.join(', ');
+      document.getElementById('f_summary').value = draft.summary || '';
+      document.getElementById('f_recs').value = draft.recommendations || '';
+      document.getElementById('f_conclusion').value = draft.conclusion || '';
+      extractedFromAI = true;
+      pdfStatus.textContent = 'Drafted — review and edit before saving.';
+    }catch(e){
+      pdfStatus.style.color = '#ff9d90';
+      pdfStatus.textContent = 'AI extraction failed — ' + e.message;
+    }
+    aiBtn.disabled = false;
+  });
+
+  document.getElementById('saveAddBtn').addEventListener('click', () => submitNewReport(extractedFromAI, pendingPdfFile, sourceMode));
+}
+
+// ---- PDF text extraction (client-side, via pdf.js) ----
+async function extractPdfText(arrayBuffer){
+  if(window['pdfjsLib']){
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+  const pdf = await loadingTask.promise;
+  let text = '';
+  const maxPages = Math.min(pdf.numPages, 40); // cap for very long reports
+  for(let i = 1; i <= maxPages; i++){
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(it => it.str).join(' ') + '\n\n';
+    if(text.length > 60000) break; // cap characters sent to the model
+  }
+  return text.slice(0, 60000);
+}
+
+// ---- AI extraction via Claude API (direct browser call, user's own key) ----
+async function aiExtractFields(text, titleHint){
+  const cfg = loadConfig();
+  const provider = cfg.aiProvider || 'gemini';
+  const prompt = `You are extracting structured metadata from a research/policy report for an archive.
+${titleHint ? `The title may already be: "${titleHint}".` : ''}
+Read the report text below and respond with ONLY a JSON object (no markdown fences, no commentary) with these exact keys:
+{
+  "title": "best-guess report title",
+  "org": "publishing organization(s)",
+  "date": "YYYY-MM or YYYY if you can determine it, else empty string",
+  "topics": ["2-4 short topic tags"],
+  "summary": "2-4 sentence summary of what the report covers and its main findings, in plain prose, not copied verbatim from the text",
+  "recommendations": "the report's key recommendations in plain prose; if the report doesn't state explicit recommendations, synthesize the most reasonable recommendations implied by its findings",
+  "conclusion": "the report's bottom-line conclusion in 1-3 sentences"
+}
+
+REPORT TEXT (may be truncated):
+"""
+${text}
+"""`;
+  if(provider === 'gemini') return callGemini(prompt, cfg.geminiKey);
+  return callClaude(prompt, cfg.aiKey);
+}
+
+async function callGemini(prompt, apiKey){
+  if(!apiKey) throw new Error('[NO_KEY] No Gemini API key set in ⚙ Access.');
+  let res;
+  try{
+    res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent', {
+      method: 'POST',
+      headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: 'application/json' },
+      }),
+    });
+  }catch(networkErr){
+    throw new Error('[NETWORK_ERROR] Request never reached Google — check your connection, or that nothing is blocking generativelanguage.googleapis.com (some ad blockers/extensions do). If it persists, the browser may be blocking this cross-origin call — use the manual copy-paste fallback instead.');
+  }
+  if(!res.ok){
+    const errJson = await res.json().catch(()=>({}));
+    const errMsg = errJson.error?.message || res.statusText || 'no details';
+    const errStatus = errJson.error?.status || 'unknown';
+    const map = {
+      429: 'RATE_LIMIT — free-tier requests-per-minute or daily quota reached. Wait a bit and retry.',
+      400: 'BAD_REQUEST — malformed request (often: PDF text empty, or key pasted with extra spaces).',
+      403: 'FORBIDDEN — key invalid, or the API is not enabled for this key\'s project.',
+      404: 'NOT_FOUND — model name not available for this key/region.',
+      500: 'SERVER_ERROR — Google\'s API had an internal error, try again.',
+      503: 'UNAVAILABLE — model temporarily overloaded, try again shortly.',
+    };
+    const label = map[res.status] || `HTTP_${res.status}`;
+    throw new Error(`[${label}] (${errStatus}) ${errMsg}`);
+  }
+  const data = await res.json();
+  const raw = data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+  try{
+    return JSON.parse(raw.replace(/```json|```/g, '').trim());
+  }catch(parseErr){
+    throw new Error('[PARSE_ERROR] Gemini responded but not in the expected JSON format. Try again, or shorten the PDF.');
+  }
+}
+
+async function callClaude(prompt, apiKey){
+  if(!apiKey) throw new Error('[NO_KEY] No Anthropic API key set in ⚙ Access.');
+  let res;
+  try{
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-5',
+        max_tokens: 1200,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+  }catch(networkErr){
+    throw new Error('[NETWORK_ERROR] Request never reached Anthropic — check your internet connection, or that nothing (ad blocker, extension) is blocking api.anthropic.com.');
+  }
+  if(!res.ok){
+    const errJson = await res.json().catch(()=>({}));
+    const errType = errJson.error?.type || 'unknown_error';
+    const errMsg = errJson.error?.message || res.statusText || 'no details';
+    const map = {
+      429: 'RATE_LIMIT — too many requests, or your usage limit for this key has been reached.',
+      529: 'OVERLOADED — Claude API is temporarily overloaded, try again shortly.',
+      401: 'AUTH_FAILED — API key is invalid, expired, or missing.',
+      403: 'FORBIDDEN — key does not have permission for this request (check plan/billing).',
+      400: 'BAD_REQUEST — the request was malformed (often: PDF text too long or empty).',
+      500: 'SERVER_ERROR — Anthropic API had an internal error, try again.',
+    };
+    const label = map[res.status] || `HTTP_${res.status}`;
+    throw new Error(`[${label}] (${errType}) ${errMsg}`);
+  }
+  const data = await res.json();
+  const raw = (data.content || []).map(b => b.text || '').join('');
+  const cleaned = raw.replace(/```json|```/g, '').trim();
+  try{
+    return JSON.parse(cleaned);
+  }catch(parseErr){
+    throw new Error('[PARSE_ERROR] Claude responded but not in the expected JSON format. Try again, or shorten the PDF.');
+  }
+}
+
+async function submitNewReport(fromAI, pdfFile, sourceMode){
+  const title = document.getElementById('f_title').value.trim();
+  if(!title){ alert('Title is required.'); return; }
+  const dateVal = document.getElementById('f_date').value.trim();
+  const yearMatch = dateVal.match(/\d{4}/);
+  const id = 'r_' + Date.now().toString(36);
+  let url = document.getElementById('f_url').value.trim();
+
+  // If uploading a PDF and "store a copy" is checked, commit it to /pdfs first
+  const storeCheckbox = document.getElementById('f_storePdf');
+  if(sourceMode === 'upload' && pdfFile && storeCheckbox && storeCheckbox.checked){
+    const statusEl = document.getElementById('addStatus');
+    statusEl.textContent = 'Uploading PDF to repo…'; statusEl.className = 'status-msg show ok';
+    if(pdfFile.size > 5 * 1024 * 1024){
+      statusEl.textContent = 'PDF is over 5 MB — skipping repo upload; add a link instead.';
+      statusEl.className = 'status-msg show err';
+    } else {
+      try{
+        const path = await uploadPdfToRepo(pdfFile, id);
+        url = path; // relative path served by GitHub Pages
+      }catch(e){
+        statusEl.textContent = 'PDF upload failed (' + e.message + ') — saving report without a stored copy.';
+        statusEl.className = 'status-msg show err';
+      }
+    }
+  }
+
+  const newReport = {
+    id, title,
+    org: document.getElementById('f_org').value.trim(),
+    date: dateVal,
+    year: yearMatch ? parseInt(yearMatch[0],10) : null,
+    topics: document.getElementById('f_topics').value.split(',').map(s=>s.trim()).filter(Boolean),
+    url,
+    summary: document.getElementById('f_summary').value.trim(),
+    recommendations: document.getElementById('f_recs').value.trim(),
+    conclusion: document.getElementById('f_conclusion').value.trim(),
+    summaryAI: fromAI, recAI: fromAI, conclAI: fromAI,
+  };
+  const next = [...allReports, newReport];
+  await commitData(next, `Add report: ${title}`, 'addStatus');
+}
+
+async function uploadPdfToRepo(file, id){
+  const cfg = loadConfig();
+  if(!cfg.owner || !cfg.repo || !cfg.token) throw new Error('No editor access configured');
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `pdfs/${id}_${safeName}`;
+  const arrayBuffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = '';
+  for(let i = 0; i < bytes.length; i += 8192){
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+  }
+  const base64 = btoa(binary);
+  const apiUrl = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${path}`;
+  const res = await fetch(apiUrl, {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${cfg.token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: `Upload PDF: ${file.name}`, content: base64, branch: cfg.branch || 'main' })
+  });
+  if(!res.ok){
+    const errJson = await res.json().catch(()=>({}));
+    throw new Error(errJson.message || `HTTP ${res.status}`);
+  }
+  return path;
+}
+
+// ============ GITHUB API WRITE ============
+async function commitData(newData, message, statusElId){
+  const cfg = loadConfig();
+  const statusEl = statusElId ? document.getElementById(statusElId) : null;
+  const show = (msg, ok) => { if(statusEl){ statusEl.textContent = msg; statusEl.className = 'status-msg show ' + (ok?'ok':'err'); } };
+  if(!cfg.owner || !cfg.repo || !cfg.token){ show('No editor access configured. Open ⚙ Access.', false); return; }
+  try{
+    show('Committing to GitHub…', true);
+    const apiBase = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json`;
+    // 1. get current file sha
+    let getRes;
+    try{
+      getRes = await fetch(apiBase + `?ref=${cfg.branch||'main'}`, {
+        headers: { 'Authorization': `Bearer ${cfg.token}`, 'Accept': 'application/vnd.github+json' }
+      });
+    }catch(networkErr){
+      throw new Error('[NETWORK_ERROR] The request to api.github.com never got a response. Most likely causes: (1) you\'re opening this file directly (file://) instead of via your published GitHub Pages URL — try the live https:// link; (2) an ad blocker / privacy extension is blocking api.github.com — try disabling it for this site; (3) you\'re briefly offline.');
+    }
+    if(!getRes.ok) throw new Error(`Could not read current data.json (HTTP ${getRes.status}). Check repo owner/name/branch and token permissions.`);
+    const getJson = await getRes.json();
+    const sha = getJson.sha;
+    // 2. put updated content
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(newData, null, 2))));
+    let putRes;
+    try{
+      putRes = await fetch(apiBase, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${cfg.token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, content, sha, branch: cfg.branch || 'main' })
+      });
+    }catch(networkErr){
+      throw new Error('[NETWORK_ERROR] The commit request to api.github.com never got a response. Same likely causes as above — check you\'re on the live https:// site, and that nothing is blocking api.github.com.');
+    }
+    if(!putRes.ok){
+      const errJson = await putRes.json().catch(()=>({}));
+      throw new Error(errJson.message || `Commit failed (HTTP ${putRes.status})`);
+    }
+    allReports = newData;
+    populateTopics(); updateStats(); applyFilters();
+    show('Saved — commit pushed. Everyone will see it once the page reloads.', true);
+    setTimeout(() => { addOverlay.classList.remove('open'); }, 1200);
+  }catch(e){
+    show('Error: ' + e.message, false);
+  }
+}
+
+// ============ SETTINGS ============
+document.getElementById('settingsBtn').addEventListener('click', () => {
+  const cfg = loadConfig();
+  document.getElementById('cfg_owner').value = cfg.owner || '';
+  document.getElementById('cfg_repo').value = cfg.repo || '';
+  document.getElementById('cfg_branch').value = cfg.branch || 'main';
+  document.getElementById('cfg_token').value = cfg.token || '';
+  document.getElementById('cfg_aikey').value = cfg.aiKey || '';
+  document.getElementById('cfg_geminikey').value = cfg.geminiKey || '';
+  document.getElementById('cfg_provider').value = cfg.aiProvider || 'gemini';
+  settingsOverlay.classList.add('open');
+});
+document.getElementById('closeSettings').addEventListener('click', () => settingsOverlay.classList.remove('open'));
+settingsOverlay.addEventListener('click', e => { if(e.target === settingsOverlay) settingsOverlay.classList.remove('open'); });
+
+document.getElementById('saveTokenBtn').addEventListener('click', () => {
+  const cfg = {
+    owner: document.getElementById('cfg_owner').value.trim(),
+    repo: document.getElementById('cfg_repo').value.trim(),
+    branch: document.getElementById('cfg_branch').value.trim() || 'main',
+    token: document.getElementById('cfg_token').value.trim(),
+    aiKey: document.getElementById('cfg_aikey').value.trim(),
+    geminiKey: document.getElementById('cfg_geminikey').value.trim(),
+    aiProvider: document.getElementById('cfg_provider').value,
+  };
+  saveConfig(cfg);
+  const el = document.getElementById('settingsStatus');
+  el.textContent = 'Saved to this browser.'; el.className = 'status-msg show ok';
+  setTimeout(() => settingsOverlay.classList.remove('open'), 900);
+});
+document.getElementById('clearTokenBtn').addEventListener('click', () => {
+  localStorage.removeItem(CONFIG_KEY);
+  document.getElementById('cfg_owner').value = '';
+  document.getElementById('cfg_repo').value = '';
+  document.getElementById('cfg_token').value = '';
+  document.getElementById('cfg_aikey').value = '';
+  document.getElementById('cfg_geminikey').value = '';
+  const el = document.getElementById('settingsStatus');
+  el.textContent = 'Cleared.'; el.className = 'status-msg show ok';
+});
+function hasAiKey(){
+  const c = loadConfig();
+  const provider = c.aiProvider || 'gemini';
+  return provider === 'gemini' ? !!c.geminiKey : !!c.aiKey;
+}
+
+// ============ EVENTS ============
+searchBox.addEventListener('input', applyFilters);
+topicFilter.addEventListener('change', applyFilters);
+sortSelect.addEventListener('change', applyFilters);
+document.addEventListener('keydown', e => { if(e.key === 'Escape'){ closeDetail(); addOverlay.classList.remove('open'); settingsOverlay.classList.remove('open'); } });
+
+// ============ HOME / NAVIGATION ============
+function goHome(){
+  closeDetail();
+  addOverlay.classList.remove('open');
+  settingsOverlay.classList.remove('open');
+  searchBox.value = '';
+  topicFilter.value = '';
+  sortSelect.value = 'date_desc';
+  applyFilters();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+document.getElementById('homeBtn').addEventListener('click', goHome);
+document.getElementById('homeBtn2').addEventListener('click', goHome);
+
+// ============ INIT ============
+loadData();
+</script>
+</body>
+</html>
