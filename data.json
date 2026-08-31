@@ -350,5 +350,26 @@
     "summaryAI": true,
     "recAI": true,
     "conclAI": true
+  },
+  {
+    "id": "r_mtgu6x2r",
+    "title": "Energy Storage at the Distribution Level – Technologies, Costs and Applications",
+    "org": "The Energy and Resources Institute (TERI)",
+    "date": "2021-09",
+    "year": 2021,
+    "topics": [
+      "Energy Storage",
+      "Electricity Distribution",
+      "Battery Energy Storage Systems",
+      "Renewable Energy Integration"
+    ],
+    "url": "pdfs/r_mtgu6x2r_Energy_Storage_at_the_Distribution_Report.pdf",
+    "summary": "As renewable energy penetration grows rapidly in India, variable power generation presents technical challenges such as voltage fluctuations and intermittency at the distribution network level. Energy storage systems, particularly battery energy storage, provide vital flexibility to balance demand, manage distribution congestion, and reduce peak power purchase costs. This report examines storage technologies, cost trends, pilot project findings, and regulatory frameworks to help distribution utilities integrate storage solutions effectively.",
+    "recommendations": "1. Establish a supportive regulatory and policy framework to enable multi-use revenue streams and de-risk utility investments in energy storage. 2. Expand pilot project deployments to gain practical operational experience in distribution-level applications like transformer overload management and peak shaving. 3. Support domestic manufacturing of advanced battery chemistries through policy schemes to lower capital costs and secure supply chains. 4. Integrate energy storage deployment into long-term distribution system planning to facilitate the seamless grid integration of renewable energy.",
+    "conclusion": "Energy storage technologies are essential for managing grid intermittency and maintaining power quality as India scales up its renewable energy capacity. By understanding operational use cases, cost trends, and technical specifications, distribution utilities can deploy optimal storage solutions tailored to their network requirements.",
+    "summaryAI": true,
+    "recAI": true,
+    "conclAI": true,
+    "recSource": "synthesized"
   }
 ]
