@@ -1,0 +1,7 @@
+name = "publications-archive-gemini"
+main = "gemini-worker.js"
+compatibility_date = "2026-10-22"
+workers_dev = true
+
+[vars]
+SITE_ORIGIN = "https://terierddelhi.github.io"
