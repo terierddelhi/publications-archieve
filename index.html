@@ -937,7 +937,7 @@ loadData();
 </style>
 <button class="btn primary archive-chat-toggle" id="archiveChatToggle" type="button" aria-expanded="false">✦ Ask the archive</button>
 <section class="archive-chat-panel" id="archiveChatPanel" aria-label="Ask the publications archive" aria-hidden="true">
-  <header class="archive-chat-head"><div><h2>Ask the archive</h2><p>Answers are grounded in the full publication PDFs.</p></div><button class="close-x" id="archiveChatClose" type="button" aria-label="Close chat">✕</button></header>
+  <header class="archive-chat-head"><div><h2>Ask the archive</h2><p>Get a text summary here; source links open the original PDFs.</p></div><button class="close-x" id="archiveChatClose" type="button" aria-label="Close chat">✕</button></header>
   <div class="archive-chat-log" id="archiveChatLog" role="log" aria-live="polite"><div class="archive-chat-msg assistant">Ask about a report, topic, recommendation, or publication year.</div></div>
   <form class="archive-chat-compose" id="archiveChatForm"><textarea id="archiveChatInput" rows="1" maxlength="1200" aria-label="Your question" placeholder="Ask a question…" required></textarea><button class="btn primary" id="archiveChatSend" type="submit">Send</button></form>
   <div class="archive-chat-note">Your question and the full PDFs for up to two matching reports are sent to Google Gemini. Don’t enter personal or confidential information.</div>
@@ -967,11 +967,19 @@ loadData();
     return node;
   }
   function findRecords(question) {
-    const terms = [...new Set((question.toLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || []))];
-    return (Array.isArray(allReports) ? allReports : []).map(report => {
-      const haystack = [report.title, report.org, report.date, ...(report.topics || []), report.summary, report.recommendations, report.conclusion].join(' ').toLowerCase();
-      return { report, score: terms.reduce((n, term) => n + (haystack.includes(term) ? 1 : 0), 0) };
-    }).filter(item => item.score > 0).sort((a, b) => b.score - a.score).map(item => item.report);
+    const ignored = new Set(['the','and','for','with','from','that','this','about','into','show','here','give','what','when','where','which','please','report','reports','summarize','summarise','summary','summaries','concise','brief','bullet','bullets','point','points','open','return','pdf','text','answer']);
+    const normalize = value => String(value || '').toLowerCase().replace(/[’']/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ');
+    const terms = [...new Set(normalize(question).split(/\s+/).filter(term => term.length >= 3 && !ignored.has(term)))];
+    const ranked = (Array.isArray(allReports) ? allReports : []).map(report => {
+      const title = normalize(report.title);
+      const topics = normalize((report.topics || []).join(' '));
+      const haystack = normalize([report.org, report.date, report.summary, report.recommendations, report.conclusion].join(' '));
+      const score = terms.reduce((n, term) => n + (title.includes(term) ? 8 : topics.includes(term) ? 3 : haystack.includes(term) ? 1 : 0), 0);
+      return { report, score };
+    }).filter(item => item.score > 0).sort((a, b) => b.score - a.score);
+    if (!ranked.length) return [];
+    const relevanceFloor = Math.max(3, ranked[0].score * 0.45);
+    return ranked.filter(item => item.score >= relevanceFloor).slice(0, 2).map(item => item.report);
   }
   toggle.addEventListener('click', () => openChat(!panel.classList.contains('open')));
   document.getElementById('archiveChatClose').addEventListener('click', () => openChat(false));
@@ -1001,9 +1009,11 @@ loadData();
         if (!source.url) return;
         const link = document.createElement('a');
         link.href = source.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
-        link.textContent = '[' + (i + 1) + '] ' + (source.title || 'Open source document');
+        link.textContent = 'Open source PDF [' + (i + 1) + ']: ' + (source.title || 'report');
         const wrap = pending.querySelector('.archive-chat-sources') || document.createElement('div');
-        wrap.className = 'archive-chat-sources'; wrap.appendChild(link);
+        wrap.className = 'archive-chat-sources';
+        if (!wrap.childElementCount) { const label = document.createElement('strong'); label.textContent = 'Sources (original PDFs):'; wrap.appendChild(label); }
+        wrap.appendChild(link);
         if (!wrap.parentNode) pending.appendChild(wrap);
       });
       history.push({ question, answer });
