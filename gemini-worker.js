@@ -48,34 +48,42 @@ function toBase64(bytes) {
   return btoa(binary);
 }
 async function uploadLargePdf(bytes, title, apiKey) {
-  const start = await fetch(FILES_UPLOAD_URL, {
-    method: 'POST',
-    headers: {
-      'x-goog-api-key': apiKey,
-      'X-Goog-Upload-Protocol': 'resumable',
-      'X-Goog-Upload-Command': 'start',
-      'X-Goog-Upload-Header-Content-Length': String(bytes.byteLength),
-      'X-Goog-Upload-Header-Content-Type': 'application/pdf',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ file: { display_name: String(title || 'Archive report').slice(0, 150) } }),
-    signal: AbortSignal.timeout(20000)
-  });
-  if (!start.ok) throw new Error('GEMINI_FILE_UPLOAD_FAILED');
-  const uploadUrl = start.headers.get('x-goog-upload-url');
-  let parsedUploadUrl;
-  try { parsedUploadUrl = new URL(uploadUrl); } catch { throw new Error('GEMINI_FILE_UPLOAD_FAILED'); }
-  if (parsedUploadUrl.protocol !== 'https:' || parsedUploadUrl.hostname !== 'generativelanguage.googleapis.com' || !parsedUploadUrl.pathname.startsWith('/upload/')) throw new Error('GEMINI_FILE_UPLOAD_FAILED');
-  const uploaded = await fetch(parsedUploadUrl, {
-    method: 'POST',
-    headers: { 'X-Goog-Upload-Offset': '0', 'X-Goog-Upload-Command': 'upload, finalize', 'Content-Type': 'application/pdf' },
-    body: bytes,
-    signal: AbortSignal.timeout(60000)
-  });
-  const payload = await uploaded.json().catch(() => ({}));
-  const file = payload.file || payload;
-  if (!uploaded.ok || typeof file.uri !== 'string' || typeof file.name !== 'string' || !/^files\/[A-Za-z0-9_-]+$/.test(file.name)) throw new Error('GEMINI_FILE_UPLOAD_FAILED');
-  return { fileUri: file.uri, fileName: file.name };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const start = await fetch(FILES_UPLOAD_URL, {
+        method: 'POST',
+        headers: {
+          'x-goog-api-key': apiKey,
+          'X-Goog-Upload-Protocol': 'resumable',
+          'X-Goog-Upload-Command': 'start',
+          'X-Goog-Upload-Header-Content-Length': String(bytes.byteLength),
+          'X-Goog-Upload-Header-Content-Type': 'application/pdf',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ file: { display_name: String(title || 'Archive report').slice(0, 150) } }),
+        signal: AbortSignal.timeout(20000)
+      });
+      if (!start.ok) throw new Error('GEMINI_FILE_UPLOAD_FAILED');
+      const uploadUrl = start.headers.get('x-goog-upload-url');
+      let parsedUploadUrl;
+      try { parsedUploadUrl = new URL(uploadUrl); } catch { throw new Error('GEMINI_FILE_UPLOAD_FAILED'); }
+      if (parsedUploadUrl.protocol !== 'https:' || parsedUploadUrl.hostname !== 'generativelanguage.googleapis.com' || !parsedUploadUrl.pathname.startsWith('/upload/')) throw new Error('GEMINI_FILE_UPLOAD_FAILED');
+      const uploaded = await fetch(parsedUploadUrl, {
+        method: 'POST',
+        headers: { 'X-Goog-Upload-Offset': '0', 'X-Goog-Upload-Command': 'upload, finalize', 'Content-Type': 'application/pdf' },
+        body: bytes,
+        signal: AbortSignal.timeout(180000)
+      });
+      const payload = await uploaded.json().catch(() => ({}));
+      const file = payload.file || payload;
+      if (!uploaded.ok || typeof file.uri !== 'string' || typeof file.name !== 'string' || !/^files\/[A-Za-z0-9_-]+$/.test(file.name)) throw new Error('GEMINI_FILE_UPLOAD_FAILED');
+      return { fileUri: file.uri, fileName: file.name };
+    } catch (error) {
+      if (attempt === 1) throw new Error('GEMINI_FILE_UPLOAD_FAILED');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+  throw new Error('GEMINI_FILE_UPLOAD_FAILED');
 }
 async function deleteGeminiFiles(fileNames, apiKey) {
   await Promise.all(fileNames.map(async name => {
