@@ -5,3 +5,6 @@ workers_dev = true
 
 [vars]
 SITE_ORIGIN = "https://terierddelhi.github.io"
+
+[previews.vars]
+SITE_ORIGIN = "https://terierddelhi.github.io"
