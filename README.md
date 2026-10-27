@@ -40,8 +40,10 @@ beyond giving them **write access to the repo** (Settings → Collaborators).
    - Repo name
    - Branch (usually `main`)
    - The token you just generated
-6. Click **Save**. The token is stored only in your browser's local storage
-   — it's never committed to the repo or sent anywhere except GitHub's API.
+6. Click **Save**. The token is kept in memory in the open browser tab and is
+   cleared when that tab reloads or closes. Repo settings persist locally, but
+   credentials do not. Older versions' saved credentials are removed on load.
+   The token is sent to GitHub's API only when you add or remove a report.
 
 Now the **+ Add report** button will actually commit new entries. Anyone
 without a token set can still browse and search, they just can't add/remove.
@@ -107,9 +109,10 @@ a bit and retry.
 - Errors from either provider show a specific reason (rate limit, bad key,
   network/CORS block, etc.) instead of a generic failure — see the status
   line under the Extract button.
-- Anyone with access to your browser's storage (dev tools) could technically
-  read your API key — treat it like the GitHub token: don't share this
-  browser/profile, and rotate the key if you're ever unsure.
+- Credentials are kept only in memory for the current tab and are cleared on
+  reload or close. Anyone able to run scripts in this page or control the
+  browser can still use a credential while it is active; use least-privilege
+  tokens and rotate them if you suspect exposure.
 - If a provider's direct-browser call ever gets blocked by CORS in your
   browser, there's no in-app fallback for that yet — copy the PDF text out
   (open the browser's dev console, or just read the PDF yourself) and paste
@@ -118,7 +121,7 @@ a bit and retry.
 
 ## Notes
 
-- This is intentionally simple: no backend, no database, no build step.
+- This is intentionally simple: no backend for report editing, no database, no build step.
   `data.json` *is* the database, and Git history is your audit log/undo.
 - If you'd rather not hand out GitHub tokens at all (e.g. a larger,
   less technical team), a small hosted backend (e.g. Supabase) with normal
@@ -131,3 +134,14 @@ a bit and retry.
   synthesized by AI rather than pulled near-verbatim from the source and
   are flagged with an "AI-synthesized" badge in the UI — worth a quick
   sanity check against the original PDF before treating them as final.
+
+## 5. Archive chat Worker limits
+
+The Gemini chat Worker uses `GEMINI_API_KEY` as a Cloudflare secret and
+`SITE_ORIGIN` as a variable. `wrangler.toml` also configures a Cloudflare
+Rate Limiting binding: 12 chat requests per IP per 60 seconds, applied
+separately by Cloudflare location. This is an abuse-reduction measure, not a
+strict global spend cap; set provider-side usage alerts/limits as well. If the
+rate-limit namespace ID in `wrangler.toml` is already used by another Worker in
+your account, change it to a different positive integer before deployment.
+Deploy with Wrangler 4.36.0 or later so the rate-limit binding is recognized.
