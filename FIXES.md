@@ -1,6 +1,6 @@
 # Publications Archive security fixes
 
-These files are based on the current public `main` branch snapshot checked on 2026-10-27. The fixes are local and have not been pushed or deployed.
+These files are based on the current public `main` branch snapshot checked on 2026-10-27. The changes are in PR #5. Cloudflare has built and deployed the preview successfully; production deployment awaits the PR merge.
 
 ## Changes
 
@@ -13,10 +13,10 @@ These files are based on the current public `main` branch snapshot checked on 20
 
 ## Deployment notes
 
-1. Review and copy these files over the matching files in the GitHub repository.
+1. Review PR #5. It contains the changes to the existing repository files and the regression smoke test.
 2. Confirm `namespace_id` in `wrangler.toml` is unique within the Cloudflare account; change it if already in use.
-3. Deploy using Wrangler 4.36.0 or later. Keep `GEMINI_API_KEY` as a Worker secret and `SITE_ORIGIN` configured as a Worker variable.
+3. Cloudflare preview deployment succeeded for this branch. Merging the PR should trigger the production Worker through the existing GitHub integration. Keep `GEMINI_API_KEY` as a Worker secret and `SITE_ORIGIN` configured as a Worker variable.
 4. Configure provider-side quota/usage alerts too. Cloudflare's Worker rate-limit binding is approximate and regional, so it is not a strict global spend cap.
 5. Credentials no longer persist across page reloads; editors must enter them again in each tab session.
 
-Validation: `node tests/worker-smoke.mjs` passed. The smoke test covers origin/method validation, rate limiting, request/PDF streaming caps without Content-Length, JSON shape validation, and a mocked end-to-end chat flow. Gemini and Archive.org network calls are mocked; no provider quota was used. The live repository was not modified.
+Validation: `node tests/worker-smoke.mjs` passed. The smoke test covers origin/method validation, rate limiting, request/PDF streaming caps without Content-Length, JSON shape validation, and a mocked end-to-end chat flow. Gemini and Archive.org network calls are mocked; no provider quota was used. The live production branch was not modified when this note was written.
