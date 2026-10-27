@@ -199,7 +199,7 @@
       <div class="hint" style="margin-bottom:14px;">
         1. On GitHub: Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new.<br>
         2. Scope it to <b>only this repository</b>, with <b>Contents: Read and write</b> permission.<br>
-        3. Paste the token below. It stays saved securely in this browser only.
+        3. Paste credentials below. They are kept only in this open tab and cleared when it reloads or closes.
       </div>
       <div class="form-grid">
         <div class="full">
@@ -259,12 +259,26 @@
 const CONFIG_KEY = "pub_archive_gh_config_v1";
 let allReports = [];
 let filtered = [];
+const sessionSecrets = { token: '', aiKey: '', geminiKey: '' };
 
-// ============ CONFIG (repo + token) ============
+// ============ CONFIG (non-secret settings persist; keys stay in this tab) ============
 function loadConfig(){
-  try{ return JSON.parse(localStorage.getItem(CONFIG_KEY) || "{}"); }catch(e){ return {}; }
+  let saved = {};
+  try{ saved = JSON.parse(localStorage.getItem(CONFIG_KEY) || "{}"); }catch(e){}
+  if(!saved || typeof saved !== 'object' || Array.isArray(saved)) saved = {};
+  // Remove credentials saved by older versions instead of reviving them into this session.
+  const hadPersistedSecrets = ['token','aiKey','geminiKey'].some(key => Object.prototype.hasOwnProperty.call(saved, key));
+  const { token, aiKey, geminiKey, ...safeSettings } = saved;
+  if(hadPersistedSecrets){
+    try{ localStorage.setItem(CONFIG_KEY, JSON.stringify(safeSettings)); }catch(e){}
+  }
+  return { ...safeSettings, ...sessionSecrets };
 }
-function saveConfig(cfg){ localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)); }
+function saveConfig(cfg){
+  for(const key of Object.keys(sessionSecrets)) sessionSecrets[key] = String(cfg[key] || '');
+  const { token, aiKey, geminiKey, ...safeSettings } = cfg;
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(safeSettings));
+}
 function hasToken(){ const c = loadConfig(); return !!(c.owner && c.repo && c.token); }
 
 // ============ DATA LOADING (public read, no auth needed) ============
@@ -310,9 +324,12 @@ function monthLabel(dateStr){
 
 function populateTopics(){
   const topics = new Set();
-  allReports.forEach(r => (r.topics||[]).forEach(t => topics.add(t)));
+  allReports.forEach(r => (Array.isArray(r.topics) ? r.topics : []).forEach(t => {
+    if(typeof t === 'string' && t.trim()) topics.add(t);
+  }));
   const sorted = [...topics].sort();
-  topicFilter.innerHTML = '<option value="">All topics</option>' + sorted.map(t => `<option value="${t}">${t}</option>`).join('');
+  topicFilter.replaceChildren(new Option('All topics', ''));
+  sorted.forEach(topic => topicFilter.add(new Option(topic, topic)));
   document.getElementById('statTopics').textContent = sorted.length;
 }
 
@@ -361,8 +378,8 @@ function render(){
     return;
   }
   grid.innerHTML = filtered.map(r => `
-    <div class="card" data-id="${r.id}">
-      <div class="meta-row"><span class="date">${monthLabel(r.date)}</span><span>${r.org || ''}</span></div>
+    <div class="card" data-id="${escapeAttr(r.id)}">
+      <div class="meta-row"><span class="date">${escapeHtml(monthLabel(r.date))}</span><span>${escapeHtml(r.org || '')}</span></div>
       <h3>${escapeHtml(r.title)}</h3>
       <div class="excerpt">${escapeHtml(r.summary || '')}</div>
       <div class="tags">${(r.topics||[]).slice(0,3).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
@@ -375,7 +392,16 @@ function render(){
 }
 
 function escapeHtml(s){
-  const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
+  const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML;
+}
+function escapeAttr(s){ return escapeHtml(s).replace(/"/g, '&quot;'); }
+function safeSourceUrl(value){
+  if(typeof value !== 'string' || !value.trim()) return '';
+  try{
+    const url = new URL(value.trim(), location.href);
+    if(url.protocol !== 'https:' || url.username || url.password) return '';
+    return url.href;
+  }catch(e){ return ''; }
 }
 
 function openDetail(id){
@@ -389,7 +415,7 @@ function openDetail(id){
   detailModal.innerHTML = `
     <div class="modal-head">
       <div>
-        <div class="meta-row"><span class="date">${monthLabel(r.date)}</span><span>${escapeHtml(r.org||'')}</span></div>
+        <div class="meta-row"><span class="date">${escapeHtml(monthLabel(r.date))}</span><span>${escapeHtml(r.org||'')}</span></div>
         <h2>${escapeHtml(r.title)}</h2>
       </div>
       <button class="close-x" id="modalClose">✕</button>
@@ -401,7 +427,7 @@ function openDetail(id){
       <div class="block"><div class="lbl">Recommendations ${recLabel}</div><p>${escapeHtml(r.recommendations) || '—'}</p></div>
       <div class="block"><div class="lbl">Conclusion ${r.conclAI ? '<span class="ai-flag">AI-synthesized</span>':''}</div><p>${escapeHtml(r.conclusion) || '—'}</p></div>
       <div class="modal-footer">
-        ${r.url ? `<a class="src-link" href="${r.url}" target="_blank" rel="noopener noreferrer">Open original PDF ↗ <span style="font-weight:400;color:var(--text-faint);font-size:11px;">(new tab)</span></a>` : '<span></span>'}
+        ${safeSourceUrl(r.url) ? `<a class="src-link" href="${escapeAttr(safeSourceUrl(r.url))}" target="_blank" rel="noopener noreferrer">Open original PDF ↗ <span style="font-weight:400;color:var(--text-faint);font-size:11px;">(new tab)</span></a>` : '<span></span>'}
         ${hasToken() ? `<button class="btn ghost" id="deleteReport">Remove this report</button>` : ''}
       </div>
     </div>
@@ -871,11 +897,12 @@ document.getElementById('saveTokenBtn').addEventListener('click', () => {
   };
   saveConfig(cfg);
   const el = document.getElementById('settingsStatus');
-  el.textContent = 'Saved to this browser.'; el.className = 'status-msg show ok';
+  el.textContent = 'Settings saved. Credentials are kept only in this tab and will clear when it reloads or closes.'; el.className = 'status-msg show ok';
   setTimeout(() => settingsOverlay.classList.remove('open'), 900);
 });
 document.getElementById('clearTokenBtn').addEventListener('click', () => {
   localStorage.removeItem(CONFIG_KEY);
+  for(const key of Object.keys(sessionSecrets)) sessionSecrets[key] = '';
   document.getElementById('cfg_owner').value = '';
   document.getElementById('cfg_repo').value = '';
   document.getElementById('cfg_token').value = '';
@@ -911,6 +938,7 @@ document.getElementById('homeBtn').addEventListener('click', goHome);
 document.getElementById('homeBtn2').addEventListener('click', goHome);
 
 // ============ INIT ============
+loadConfig(); // Purge credentials persisted by earlier versions immediately on page startup.
 loadData();
 </script>
 

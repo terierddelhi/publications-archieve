@@ -3,6 +3,14 @@ main = "gemini-worker.js"
 compatibility_date = "2026-10-22"
 workers_dev = true
 
+[[ratelimits]]
+name = "CHAT_RATE_LIMITER"
+namespace_id = "6812047"
+
+  [ratelimits.simple]
+  limit = 12
+  period = 60
+
 [vars]
 SITE_ORIGIN = "https://terierddelhi.github.io"
 
